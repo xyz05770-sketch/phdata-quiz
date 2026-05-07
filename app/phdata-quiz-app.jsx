@@ -473,6 +473,7 @@ export default function App() {
   const [ldLoading, setLdLoading] = useState(false);
   const [ldSubmitted, setLdSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TIMER_TOTAL);
+  const [showLeaderboardWarning, setShowLeaderboardWarning] = useState(false);
   // Load leaderboard on mount + realtime subscription
   useEffect(() => {
     DB.getLeaderboard().then(setLeaderboard);
@@ -779,7 +780,27 @@ export default function App() {
             <div style={{ fontSize: "22px", fontWeight: 600 }}>{timeTaken}s</div>
           </div>
           <button style={S.btn} onClick={() => setScreen("luckyDraw")}>Enter Lucky Draw 🎁</button>
-          <button style={S.btnSecondary} onClick={() => setScreen("leaderboard")}>View Leaderboard</button>
+          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", margin: "6px 0 0", textAlign: "center" }}>
+            Enter details to be part of lucky draw and leaderboard
+          </p>
+          <button style={S.btnSecondary} onClick={() => setShowLeaderboardWarning(true)}>View Leaderboard</button>
+          {showLeaderboardWarning && (
+            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "24px" }}>
+              <div style={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "20px", padding: "32px", maxWidth: "420px", width: "100%", textAlign: "center" }}>
+                <div style={{ fontSize: "40px", marginBottom: "12px" }}>⚠️</div>
+                <h3 style={{ color: "#fff", fontSize: "18px", fontWeight: 700, margin: "0 0 12px" }}>Results won't be saved!</h3>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", lineHeight: 1.6, margin: "0 0 24px" }}>
+                  These results won't be saved to the leaderboard. Enter the lucky draw to finalize your results on the board.
+                </p>
+                <button style={{ ...S.btn, marginTop: 0 }} onClick={() => setShowLeaderboardWarning(false)}>
+                  Go Back &amp; Enter Lucky Draw
+                </button>
+                <button style={S.btnSecondary} onClick={() => { setShowLeaderboardWarning(false); setScreen("leaderboard"); }}>
+                  Continue to Leaderboard Anyway
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
