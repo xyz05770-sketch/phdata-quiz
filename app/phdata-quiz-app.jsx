@@ -13,6 +13,30 @@ function PhDataLogo() {
   return <img src={LOGO_SRC} alt="phData" style={{ height: "36px", objectFit: "contain" }} />;
 }
 
+const TIMER_TOTAL = 30;
+
+function TimerCircle({ timeLeft }) {
+  const radius = 24;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - timeLeft / TIMER_TOTAL);
+  const color = timeLeft > 10 ? "#5B5BD6" : timeLeft > 5 ? "#fbbf24" : "#ef4444";
+  return (
+    <div style={{ position: "relative", width: "60px", height: "60px", flexShrink: 0 }}>
+      <svg width="60" height="60" style={{ transform: "rotate(-90deg)" }}>
+        <circle cx="30" cy="30" r={radius} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
+        <circle cx="30" cy="30" r={radius} fill="none" stroke={color} strokeWidth="4"
+          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 0.9s linear, stroke 0.3s" }} />
+      </svg>
+      <div style={{ position: "absolute", top: 0, left: 0, width: "60px", height: "60px",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: "17px", fontWeight: 700, color }}>
+        {timeLeft}
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // QUESTIONS DATABASE (70 questions from the doc)
 // ============================================================
@@ -448,6 +472,7 @@ export default function App() {
   const [ldError, setLdError] = useState("");
   const [ldLoading, setLdLoading] = useState(false);
   const [ldSubmitted, setLdSubmitted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(TIMER_TOTAL);
   // Load leaderboard on mount + realtime subscription
   useEffect(() => {
     DB.getLeaderboard().then(setLeaderboard);
@@ -461,6 +486,23 @@ export default function App() {
 
     return () => supabase.removeChannel(channel);
   }, []);
+
+  // Per-question countdown — resets when question changes or answer is given
+  useEffect(() => {
+    if (screen !== "quiz" || answered) return;
+    setTimeLeft(TIMER_TOTAL);
+    const interval = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) {
+          clearInterval(interval);
+          setAnswered(true);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [currentQ, screen, answered]);
 
   function startQuiz() {
     const qs = pickQuestions();
@@ -685,7 +727,10 @@ export default function App() {
           <div style={S.progressBar}>
             <div style={{ height: "100%", width: `${prog}%`, background: "linear-gradient(90deg,#5B5BD6,#8B5CF6)", borderRadius: "2px", transition: "width 0.4s" }} />
           </div>
-          <div style={S.qNum}>Question {currentQ + 1} of {questions.length}</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+            <div style={S.qNum}>Question {currentQ + 1} of {questions.length}</div>
+            <TimerCircle timeLeft={timeLeft} />
+          </div>
           <div style={S.qText}>{q.q}</div>
           {q.options.map((opt, idx) => (
             <button key={idx} style={optionStyle(idx)} onClick={() => handleSelect(idx)}>
@@ -696,7 +741,7 @@ export default function App() {
           {answered && (
             <div style={{ marginTop: "20px", padding: "14px 18px", borderRadius: "12px", background: selected === q.answer ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${selected === q.answer ? "#22c55e" : "#ef4444"}` }}>
               <div style={{ fontWeight: 600, color: selected === q.answer ? "#86efac" : "#fca5a5", marginBottom: "4px" }}>
-                {selected === q.answer ? "✅ Correct!" : "❌ Incorrect"}
+                {selected === null ? "⏱️ Time's up!" : selected === q.answer ? "✅ Correct!" : "❌ Incorrect"}
               </div>
               <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.65)" }}>
                 Correct answer: <strong style={{ color: "#86efac" }}>{q.options[q.answer]}</strong>
